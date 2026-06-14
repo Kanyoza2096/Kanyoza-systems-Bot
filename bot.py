@@ -245,18 +245,29 @@ def ask_gemini(sender_id: str, user_message: str) -> str:
     contents.append({"role": "user", "parts": [{"text": user_message}]})
     system_instruction = get_persona_with_sentiment(sentiment)
     
+    # Define the model name once at the top of your file
+GEMINI_MODEL = "gemini-2.5-flash"
+
+def generate_professional_post() -> Optional[str]:
+    topic = random.choice(PROFESSIONAL_TOPICS)
+    logger.info(f"[AUTO-POST] Generating post about: {topic}")
+    
+    prompt = f"""Write a professional 5-paragraph Facebook post about: {topic}
+    ... (rest of your prompt) ...
+    """
+    
+    # The URL uses the GEMINI_MODEL variable defined above
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_KEY}"
     
     data = {
-        "system_instruction": {"parts": [{"text": system_instruction}]},
-        "contents": contents,
+        "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
-            "temperature": 0.8,
-            "maxOutputTokens": 500,
-            "topP": 0.95,
-            "topK": 40
+            "temperature": 0.85,
+            "maxOutputTokens": 900,
+            "topP": 0.95
         }
     }
+    # ... rest of the function
     
     headers = {"Content-Type": "application/json"}
     response = requests.post(url, json=data, headers=headers, timeout=30)
