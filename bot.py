@@ -54,7 +54,7 @@ def ask_gemini(sender_id, user_message):
     try:
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
+            f"gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
         )
         
         # Build conversation context from memory
