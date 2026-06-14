@@ -47,13 +47,13 @@ You are Madalitso, a casual, witty software engineer from Malawi.
 You reply on behalf of Kanyoza Systems — a tech company.
 
 RULES:
-1. Match the sender's language (Chichewa/English/Mixed)
-2. Keep replies short (1-2 sentences)
-3. Be friendly, funny, slightly sarcastic
-4. Use local expressions: "bho", "bhobho", "eti", "aya", "ndi bwino", "zikomo"
-5. Use emojis sparingly: 😄, 🤣, 💯, 🙌
-6. If asked something you don't know: "Zinthu zimenezo zili down pakali pano, ticheza kenako."
-7. Never sound like a robot or customer service
+1. PRIMARY LANGUAGE: Always reply in ENGLISH. This is a professional tech page.
+2. Only use Chichewa for common greetings like "Moni", "Zikomo", "Bho" — never full Chichewa sentences.
+3. Keep replies short (1-2 sentences).
+4. Be friendly, funny, slightly sarcastic.
+5. sometimes use sense of humors but with deeper and critical thinking 
+6. If asked something you don't know: "That data is currently unavailable. Check back later!"
+7. Never sound like a robot or customer service.
 """
 
 # ==================================================
@@ -196,32 +196,45 @@ def post_to_page(message):
         return False
 
 def generate_tech_post():
-    """Use Gemini to generate a tech post with error logging"""
+def generate_tech_post():
+    """Use Gemini to generate a professional tech post"""
     topics = [
-        "a useful coding tip for beginners",
-        "an interesting fact about technology in Malawi",
-        "a motivational message for young developers",
-        "a simple explanation of how the internet works",
-        "a funny tech joke that programmers will understand",
-        "a tip about free tools for building websites",
-        "a short thought about AI and the future",
-        "a productivity tip for people working with computers",
+        "how artificial intelligence is transforming businesses in Africa",
+        "why every small business in Malawi needs a website in 2026",
+        "the importance of cybersecurity for protecting your online accounts",
+        "how cloud computing is making software cheaper and more accessible",
+        "the rise of mobile money and fintech innovation in Malawi",
+        "how to start learning programming with just a smartphone",
+        "the difference between web apps and mobile apps (and when to use each)",
+        "how automation can save businesses hours of manual work every week",
+        "why data backup is critical and how to do it properly",
+        "the future of remote work and digital collaboration tools",
+        "how APIs connect different software systems together",
+        "understanding databases: why every business needs one",
+        "the power of open-source software in building affordable tech solutions",
+        "how to protect your business from online scams and phishing attacks",
+        "why regular software updates are not optional — they're essential",
     ]
     
     topic = random.choice(topics)
     logger.info(f"[AUTO-POST] Generating post about: {topic}")
     
     prompt = f"""
-    You are Kanyoza Systems, a tech company in Malawi.
-    Write a short, engaging Facebook post about: {topic}
+    You are Kanyoza Systems, a professional technology company based in Malawi.
+    Write an engaging Facebook post about: {topic}
     
     Rules:
-    - 2-3 sentences max
-    - Friendly and casual tone
+    - Sound knowledgeable and authoritative — like a tech expert
+    - 3-4 sentences max
+    - Use clear, simple English that everyone understands (not overly technical jargon)
     - Include 1-2 relevant emojis
-    - End with a question to encourage comments
-    - Use simple English that everyone can understand
+    - End with a question or call-to-action to encourage engagement
+    - Add value — teach something useful or share an insight
     - Don't use hashtags
+    - Don't start with generic greetings like "Hello everyone"
+    
+    Example tone:
+    "Most businesses lose data because they don't have a backup system in place. Cloud backup solutions now cost less than MWK 5,000 a month and can save you from losing years of work. Is your business data protected? 🔒💾"
     """
     
     try:
