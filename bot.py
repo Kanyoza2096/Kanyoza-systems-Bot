@@ -423,7 +423,7 @@ Keep it professional, 300-500 words. No hashtags. Include 2-3 emojis total."""
     result = response.json()
     
     if "candidates" in result and result["candidates"]:
-    post_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+        post_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     if len(post_text.split()) < 120:
         logger.warning("[POST] Too short, but accepting anyway")
