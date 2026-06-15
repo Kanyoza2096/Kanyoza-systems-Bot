@@ -281,10 +281,7 @@ def ask_gemini(sender_id: str, user_message: str, is_cron: bool = False) -> str:
             status = error.get("status", "")
             logger.error(f"[GEMINI ERROR] Status: {status} | Message: {error.get('message')}")
             
-            if status == "RESOURCE_EXHAUSTED":
-                return "⏳ Madalitso is taking a short breath. Please try messaging me again in a minute! Bho?"
-            return "Zinthu zili down pakali pano, ticheza kenako 😄"
-        
+            
         # 2. Safe Parsing Variant to Prevent IndexError Crashing
         candidates = result.get("candidates", [])
         if not candidates:
