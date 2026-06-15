@@ -302,7 +302,7 @@ def ask_gemini(sender_id: str, user_message: str, is_cron: bool = False) -> str:
         return reply
     except Exception as e:
         logger.error(f"Failed to query Gemini: {e}")
-        return "Zinthu zili down pakali pano, ticheza kenako 😄"
+        return "Busy right now, just leave the message!!"
 
 @smart_retry(max_retries=3, base_delay=1.0)
 def send_messenger(recipient_psid: str, message: str):
