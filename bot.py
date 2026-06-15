@@ -403,7 +403,7 @@ def four_hour_auto_post():
     # Try to generate with Gemini
     post_content = generate_professional_post()
     
-    # FIXED: Check if content is valid
+    # Check if content is valid
     if not post_content or len(post_content.split()) < 150:
         logger.warning("[AUTO-POST] Gemini failed or content too short, using fallback")
         backup_idea = random.choice(BACKUP_IDEAS)
@@ -416,9 +416,28 @@ def four_hour_auto_post():
         logger.info("[AUTO-POST] ✅ Published successfully!")
     else:
         logger.error("[AUTO-POST] ❌ Failed to publish")
-# Launch thread safely as Daemon execution structure
-cron_thread = threading.Thread(target=run_four_hour_cron_loop, daemon=True)
+
+# ==================================================
+# SCHEDULER LOOP (Calls four_hour_auto_post every 4 hours)
+# ==================================================
+def scheduler_loop():
+    """Background thread that runs the auto-post every 4 hours"""
+    time_module.sleep(15)  # Wait 15 seconds on startup
+    logger.info("[SCHEDULER] Auto-post scheduler started")
+    
+    while True:
+        try:
+            four_hour_auto_post()  # ← Calls your function
+            logger.info("[SCHEDULER] Sleeping for 4 hours...")
+            time_module.sleep(14400)  # 4 hours in seconds
+        except Exception as e:
+            logger.error(f"[SCHEDULER ERROR] {e}")
+            time_module.sleep(300)  # On error, wait 5 minutes then retry
+
+# Launch thread correctly - FIXED function name
+cron_thread = threading.Thread(target=scheduler_loop, daemon=True)
 cron_thread.start()
+logger.info("[STARTUP] Scheduler thread started")
 
 # ==================================================
 # WEBHOOK WEB ROUTES (FLASK HANDLERS)
