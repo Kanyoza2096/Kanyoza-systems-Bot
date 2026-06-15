@@ -167,7 +167,7 @@ You represent Kanyoza Systems — a respected tech company.
 
 RULES:
 1. PRIMARY LANGUAGE: English always (professional tech context)
-2. Chichewa allowed only for: "Moni", "Zikomo", "Bho" — never full sentences
+2. Chichewa allowed only if someone send message in chichewa and only for: "Moni", "Zikomo", "Bho" — never full sentences
 3. Keep replies SHORT (1-2 sentences for casual, 3-4 for technical questions)
 4. Be friendly, knowledgeable, slightly sarcastic but never rude
 5. If technical question: Give clear, accurate answer
@@ -245,10 +245,12 @@ def smart_retry(max_retries: int = 3, base_delay: float = 1.0):
 # API CALLS - GEMINI & FACEBOOK
 # ==================================================
 @smart_retry(max_retries=3, base_delay=1.5)
+# ==================================================
+# API CALLS - GEMINI & FACEBOOK (OPTIMIZED & BULLETPROOF)
+# ==================================================
 def ask_gemini(sender_id: str, user_message: str, is_cron: bool = False) -> str:
-    """Queries Google Gemini 2.5 Flash Endpoint securely"""
+    """Queries Google Gemini 2.5 Flash Endpoint securely with safe error tracking"""
     try:
-        # FIXED: Correct URL with https://
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_KEY}"
         
         if is_cron:
@@ -273,11 +275,28 @@ def ask_gemini(sender_id: str, user_message: str, is_cron: bool = False) -> str:
         response = requests.post(url, json=data, headers=headers, timeout=30)
         result = response.json()
         
+        # 1. Handle API Error Payloads Explicitly Without Raising Triggers
         if "error" in result:
-            logger.error(f"[GEMINI ERROR] {result['error'].get('message')}")
-            raise requests.exceptions.RequestException("Gemini downstream payload error")
+            error = result["error"]
+            status = error.get("status", "")
+            logger.error(f"[GEMINI ERROR] Status: {status} | Message: {error.get('message')}")
+            
+            if status == "RESOURCE_EXHAUSTED":
+                return "⏳ Madalitso is taking a short breath. Please try messaging me again in a minute! Bho?"
+            return "Zinthu zili down pakali pano, ticheza kenako 😄"
         
-        reply = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+        # 2. Safe Parsing Variant to Prevent IndexError Crashing
+        candidates = result.get("candidates", [])
+        if not candidates:
+            logger.error(f"[GEMINI ERROR] Empty payload response candidates grid: {result}")
+            return "Zinthu zili down pakali pano, ticheza kenako 😄"
+            
+        parts = candidates[0].get("content", {}).get("parts", [])
+        if not parts or "text" not in parts[0]:
+            logger.error(f"[GEMINI ERROR] No readable text inside generation frame: {result}")
+            return "Zinthu zili down pakali pano, ticheza kenako 😄"
+            
+        reply = parts[0]["text"].strip()
         
         if not is_cron:
             storage.add_to_memory(sender_id, "user", user_message)
@@ -286,12 +305,11 @@ def ask_gemini(sender_id: str, user_message: str, is_cron: bool = False) -> str:
         return reply
     except Exception as e:
         logger.error(f"Failed to query Gemini: {e}")
-        raise
+        return "Zinthu zili down pakali pano, ticheza kenako 😄"
 
 @smart_retry(max_retries=3, base_delay=1.0)
 def send_messenger(recipient_psid: str, message: str):
     """Sends outbound text message blocks back through Page Webhook Channels"""
-    # FIXED: Correct URL with https://
     url = f"https://graph.facebook.com/v18.0/me/messages?access_token={PAGE_ACCESS_TOKEN}"
     payload = {"recipient": {"id": recipient_psid}, "message": {"text": message}}
     response = requests.post(url, json=payload, timeout=30)
@@ -301,7 +319,6 @@ def send_messenger(recipient_psid: str, message: str):
 @smart_retry(max_retries=3, base_delay=2.0)
 def post_to_page(message: str) -> bool:
     """Publishes structural educational updates to the Page's public feed"""
-    # FIXED: Correct URL with https://
     url = f"https://graph.facebook.com/v18.0/{PAGE_ID}/feed"
     payload = {"message": message, "access_token": PAGE_ACCESS_TOKEN}
     logger.info(f"[POST] Publishing directly to target Page feed ID: {PAGE_ID}")
@@ -313,6 +330,8 @@ def post_to_page(message: str) -> bool:
         return True
     logger.error(f"[POST ERROR FEED] {result.get('error', {}).get('message')}")
     return False
+                         
+
 
 def send_typing_on(recipient_psid: str):
     """Triggers the 'typing...' bubble interface for aesthetic UX continuity"""
