@@ -327,33 +327,76 @@ def send_typing_on(recipient_psid: str):
 # ==================================================
 # 🎉 AUTOMATED 4-HOUR CRON THREAD MANAGER
 # ==================================================
-def generate_and_publish_tech_post():
-    """Generates deep technical insight, falling back clean on local lists on error state"""
-    selected_topic = random.choice(PROFESSIONAL_TOPICS)
-    prompt = f"Write a professional 5-paragraph Facebook industry post detailing the technical implementations of {selected_topic} for Kanyoza Systems followers. Use structured linebreaks."
-    logger.info(f"[CRON] Commencing background 4-hour build pipeline for topic: {selected_topic}")
+# ==================================================
+# PROFESSIONAL POSTS - FIXED VERSION
+# ==================================================
+
+@smart_retry(max_retries=2, base_delay=2.0)
+def generate_professional_post() -> Optional[str]:
+    """Generate a professional 5-paragraph post using Gemini"""
+    topic = random.choice(PROFESSIONAL_TOPICS)
+    logger.info(f"[AUTO-POST] Generating post about: {topic}")
+    
+    prompt = f"""Write a professional 5-paragraph Facebook post about: {topic}
+
+Paragraph 1: Hook - state the problem
+Paragraph 2: Why it matters for businesses
+Paragraph 3: Key insight or approach
+Paragraph 4: Practical example
+Paragraph 5: Call to action or question
+
+Keep it professional, 300-500 words. No hashtags. Include 2-3 emojis."""
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_KEY}"
+    
+    data = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.85,
+            "maxOutputTokens": 900,
+            "topP": 0.95
+        }
+    }
+    
     try:
-        generated_content = ask_gemini("system_cron", prompt, is_cron=True)
-        success = post_to_page(generated_content)
-        if not success:
-            raise Exception("Fallback trigger required due to downstream endpoint block")
-    except Exception:
-        logger.warning("[CRON] AI Generation or publication pipeline crashed. Deploying fallback structural template.")
+        response = requests.post(url, json=data, timeout=45)
+        result = response.json()
+        
+        # FIXED: Check candidates exist before using them
+        if result.get("candidates"):
+            post_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+            word_count = len(post_text.split())
+            logger.info(f"[AUTO-POST] Generated {word_count} words")
+            return post_text
+        else:
+            error_msg = result.get("error", {}).get("message", "Unknown error")
+            logger.error(f"[AUTO-POST] API error: {error_msg}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"[AUTO-POST] Exception: {e}")
+        return None
+
+def four_hour_auto_post():
+    """Generate and publish post every 4 hours with fallback"""
+    logger.info("[AUTO-POST] Running 4-hour scheduled post...")
+    
+    # Try to generate with Gemini
+    post_content = generate_professional_post()
+    
+    # FIXED: Check if content is valid
+    if not post_content or len(post_content.split()) < 150:
+        logger.warning("[AUTO-POST] Gemini failed or content too short, using fallback")
         backup_idea = random.choice(BACKUP_IDEAS)
-        fallback_msg = random.choice(FALLBACK_TEMPLATES).format(idea=backup_idea)
-        post_to_page(fallback_msg)
-
-def run_four_hour_cron_loop():
-    """Independent daemon execution loop tracking intervals smoothly across server lifecycle"""
-    time_module.sleep(15)  # Let server register routes before first boot job
-    while True:
-        try:
-            generate_and_publish_tech_post()
-        except Exception as e:
-            logger.error(f"[CRON INTERCEPT] Thread execution exception: {e}")
-        logger.info("[CRON] Sequence complete. Sleeping for exactly 4 hours...")
-        time_module.sleep(14400)  # 4 Hours in Seconds
-
+        post_content = random.choice(FALLBACK_TEMPLATES).format(idea=backup_idea)
+    
+    # Publish to Facebook
+    success = post_to_page(post_content)
+    if success:
+        storage.set_last_post_time(datetime.now())
+        logger.info("[AUTO-POST] ✅ Published successfully!")
+    else:
+        logger.error("[AUTO-POST] ❌ Failed to publish")
 # Launch thread safely as Daemon execution structure
 cron_thread = threading.Thread(target=run_four_hour_cron_loop, daemon=True)
 cron_thread.start()
