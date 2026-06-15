@@ -290,9 +290,23 @@ def generate_professional_post() -> Optional[str]:
     topic = random.choice(PROFESSIONAL_TOPICS)
     logger.info(f"[AUTO-POST] Generating post about: {topic}")
     
-    prompt = f"""Write a professional 5-paragraph Facebook post about: {topic}
-    ... (rest of your prompt) ...
-    """
+    prompt = f"""
+Write a high-quality professional Facebook post about: {topic}
+
+STRICT REQUIREMENTS:
+- 5 clear paragraphs (do not merge paragraphs)
+- Each paragraph must be 3–5 sentences
+- Total length: 250–450 words
+- Must feel original and NOT generic AI content
+- Avoid repetitive phrases like "in today's world"
+- Include ONE real-world example or scenario
+- Include ONE technical insight that is practical
+- End with a strong question that triggers discussion
+- No hashtags
+
+Tone: professional engineer, slightly opinionated, engaging
+Audience: African startups, developers, tech leaders
+"""
     
     # The URL uses the GEMINI_MODEL variable defined above
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_KEY}"
@@ -356,30 +370,27 @@ def send_messenger(recipient_psid: str, message: str) -> bool:
 # PROFESSIONAL POSTS
 # ==================================================
 PROFESSIONAL_TOPICS = [
-    "enterprise cloud migration strategies and cost optimization",
-    "AI-powered business intelligence and predictive analytics",
-    "zero-trust security architecture implementation",
-    "scaling startups with microservices vs monoliths",
-    "data governance and compliance in African markets"
+    "Why most African tech startups fail after getting first funding",
+    "The dangerous myth of 'just use microservices' in early-stage apps",
+    "Why most APIs break under real-world traffic (not in testing)",
+    "The hidden cost of poor database indexing decisions",
+    "Why caching can sometimes make systems slower instead of faster",
+    "The real reason developers underestimate backend complexity",
+    "Why scaling too early kills product velocity",
+    "The mistake of copying Silicon Valley architecture blindly",
+    "Why most AI projects fail after the demo stage",
+    "The silent performance killers in production systems"
 ]
 
-FALLBACK_POSTS = [
-    """Most companies treat data backup as an afterthought — until it's too late. A single corrupted database can wipe out years of work.
-
-The 3-2-1 backup rule remains the gold standard: 3 copies of your data, on 2 different types of media, with 1 copy stored offsite.
-
-Start today: identify your most critical data, implement automated daily backups, and test your restore process monthly.
-
-Is your business data properly protected? 💾""",
-
-    """Building scalable software isn't about choosing the right framework — it's about understanding your data flow.
-
-We recently helped a client reduce API response time from 4 seconds to 200ms by batching database queries.
-
-Before adding caching layers, profile your slowest endpoints. Often the fix is simpler than you think.
-
-What's your biggest performance bottleneck? 🔍"""
+FALLBACK_TEMPLATES = [
+    "🔒 [Security Tip] {idea} — Protect your business digital assets before vulnerability becomes a threat. #CyberSecurity #KanyozaSystems",
+    "💡 [System Insight] {idea} — Scalable system architecture starts with clean engineering choices. #CloudComputing #TechInfrastructure",
+    "🛠️ [Engineering Lesson] {idea} — Code maintenance costs more than initial design. Build it right the first time. #SoftwareEngineering #TechTips",
+    "🚀 [Business Strategy] {idea} — Modernizing your technical workflow is the fastest way to reduce overhead and scale operations. #BizTech #Innovation",
+    "🤖 [AI Innovation] {idea} — Integrating smart automation loops into your current pipelines saves hours of manual overhead. #ArtificialIntelligence #Kanyoza",
+    "💻 [Dev Tip] {idea} — Write self-documenting code and write robust tests. Future you will thank you. #CleanCode #DeveloperTips"
 ]
+
 
 @smart_retry(max_retries=2, base_delay=2.0)
 def generate_professional_post() -> Optional[str]:
@@ -412,11 +423,12 @@ Keep it professional, 300-500 words. No hashtags. Include 2-3 emojis total."""
     result = response.json()
     
     if "candidates" in result and result["candidates"]:
-        post_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
-        paragraphs = [p for p in post_text.split('\n\n') if p.strip()]
-        
-        if len(paragraphs) >= 4 and len(post_text.split()) >= 200:
-            return post_text
+    post_text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+    if len(post_text.split()) < 120:
+        logger.warning("[POST] Too short, but accepting anyway")
+
+    return post_text
     
     return None
 
