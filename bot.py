@@ -234,19 +234,57 @@ def send_typing_action(recipient_psid: str, action: str = "typing_on"):
 def ask_gemini(sender_id: str, user_message: str) -> str:
     sentiment = detect_sentiment(user_message)
     storage.set_sentiment(sender_id, sentiment)
-    
+
     history = storage.get_memory(sender_id)
-    
+
     contents = []
     for msg in history[-MAX_HISTORY:]:
         role = "user" if msg["role"] == "user" else "model"
-        contents.append({"role": role, "parts": [{"text": msg["text"]}]})
-    
-    contents.append({"role": "user", "parts": [{"text": user_message}]})
+        contents.append({
+            "role": role,
+            "parts": [{"text": msg["text"]}]
+        })
+
+    contents.append({
+        "role": "user",
+        "parts": [{"text": user_message}]
+    })
+
     system_instruction = get_persona_with_sentiment(sentiment)
-    
-    # Define the model name once at the top of your file
-GEMINI_MODEL = "gemini-2.5-flash"
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_KEY}"
+
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": system_instruction}]
+        },
+        "contents": contents,
+        "generationConfig": {
+            "temperature": 0.8,
+            "maxOutputTokens": 500,
+            "topP": 0.95
+        }
+    }
+
+    try:
+        response = requests.post(url, json=payload, timeout=30)
+        result = response.json()
+
+        if "error" in result:
+            logger.error(f"[GEMINI ERROR] {result['error']}")
+            return "⚠️ Technical issue. Try again later."
+
+        reply = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+        storage.add_to_memory(sender_id, "user", user_message)
+        storage.add_to_memory(sender_id, "assistant", reply)
+
+        return reply
+
+    except Exception as e:
+        logger.error(f"[GEMINI REQUEST FAILED] {e}")
+        return "⚠️ I'm having trouble connecting to AI service."
+
 
 def generate_professional_post() -> Optional[str]:
     topic = random.choice(PROFESSIONAL_TOPICS)
