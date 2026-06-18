@@ -671,11 +671,16 @@ def receive_message():
                         logger.info(f"[WEBHOOK] Bot paused for {sender_id} — skipping")
                         continue
                     
-                    # Queue for async processing
-                    logger.info(f"[WEBHOOK] Queuing message for async processing...")
-                    message_queue.put((sender_id, text, message_id))
-                    logger.info(f"[WEBHOOK] Queued. Queue size: {message_queue.qsize()}")
-                    
+                    # Process in background thread
+logger.info(f"[WEBHOOK] Starting processing thread...")
+import threading
+thread = threading.Thread(
+    target=_process_single_message,
+    args=(sender_id, text, message_id),
+    daemon=True
+)
+thread.start()
+logger.info(f"[WEBHOOK] Thread started")
                 else:
                     logger.info(f"[WEBHOOK] Non-text message — skipping")
                     
