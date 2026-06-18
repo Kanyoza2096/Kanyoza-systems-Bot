@@ -672,15 +672,15 @@ def receive_message():
                         continue
                     
                     # Process in background thread
-logger.info(f"[WEBHOOK] Starting processing thread...")
-import threading
-thread = threading.Thread(
-    target=_process_single_message,
-    args=(sender_id, text, message_id),
-    daemon=True
-)
-thread.start()
-logger.info(f"[WEBHOOK] Thread started")
+                    logger.info(f"[WEBHOOK] Starting processing thread...")
+                    thread = threading.Thread(
+                        target=_process_single_message,
+                        args=(sender_id, text, message_id),
+                        daemon=True
+                    )
+                    thread.start()
+                    logger.info(f"[WEBHOOK] Thread started")
+                    
                 else:
                     logger.info(f"[WEBHOOK] Non-text message — skipping")
                     
@@ -689,32 +689,6 @@ logger.info(f"[WEBHOOK] Thread started")
         logger.error(traceback.format_exc())
     
     return "EVENT_RECEIVED", 200
-
-@app.route("/status", methods=["GET"])
-def system_status():
-    return jsonify({
-        "status": "online",
-        "version": "5.1-debug",
-        "model": GEMINI_MODEL,
-        "gemini_key": bool(GEMINI_KEY),
-        "page_token": bool(PAGE_ACCESS_TOKEN),
-        "supabase": "connected" if supabase else "not configured",
-        "active_chats": len(storage.chat_memory),
-        "queue_size": message_queue.qsize()
-    })
-
-@app.route("/", methods=["GET"])
-def home():
-    return jsonify({
-        "service": "Kanyoza Systems Bot v5.1",
-        "status": "operational",
-        "mode": "DEBUG"
-    })
-
-@app.route("/health", methods=["GET"])
-def health():
-    return "OK", 200
-
 # ==================================================
 # MAIN
 # ==================================================
